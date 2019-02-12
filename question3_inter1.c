@@ -47,10 +47,13 @@ void print_PCB(int process_state,int process_id,int program_counter,int page_no)
 //TO PRINT THE MAIN MEMORY CONTENT
 void print_main_memory(){
 	printf("Main Memory Content:\n");
+	printf("\n");
 	for(int i=0;i<MAIN_MEMORY_SIZE;i++){		
-		printf("P(%d):%d\n",MM[i][1],MM[i][0]);
+		printf("| P(%d):%d |",MM[i][1],MM[i][0]);
 
 	}
+	printf("\n");
+	printf("\n");
 }
 
 //CHECK FOR PAGE IF NOT FOUND RETURN 0(PAGE FAULT)
@@ -100,6 +103,31 @@ int do_sum(int process_id,int page_no){
 	return sum;
 }
 
+void do_paging(int *current_page,int *replaced_page,int *main_memory_counter,int *pf_p,int *pr_p,int *sum_p){
+	*replaced_page=-1;
+	if(*main_memory_counter>=MAIN_MEMORY_SIZE)
+		*main_memory_counter=0;
+	if(!check_for_page(*current_page)){			
+		if(MM[*main_memory_counter][0]!=-1){
+			*replaced_page=MM[*main_memory_counter][0];
+			*pr_p++;
+		}
+		*pf_p++;
+		printf("\nPage Fault:%d\n",*current_page);
+		if(*replaced_page!=-1)
+			printf("Replacing Page: %d\n",*replaced_page);			
+		MM[*main_memory_counter][0]=*current_page;	
+		MM[*main_memory_counter][1]=1;
+		*main_memory_counter++;	
+	}else{
+		printf("\nPage Hit:%d\n",*current_page);
+	}	
+	
+	print_main_memory();
+	*sum_p=*sum_p+do_sum(1,*current_page);
+	*current_page++;
+}
+
 //THREAD FUNCTION TO RUN PROCESS 1
 void *p1_fun(void *vargp) 
 { 
@@ -108,11 +136,13 @@ void *p1_fun(void *vargp)
 	int replaced_page=-1;
 	
 	while(current_page<=11){
+		
+		sem_wait(sem1);
+
+		do_paging(&current_page,&replaced_page,&main_memory_counter,&pf_p1,&pf_p2,&sum_p1);
 		replaced_page=-1;
 		if(main_memory_counter>=MAIN_MEMORY_SIZE)
 			main_memory_counter=0;
-		sem_wait(sem1);
-
 		if(!check_for_page(current_page)){			
 			if(MM[main_memory_counter][0]!=-1){
 				replaced_page=MM[main_memory_counter][0];
